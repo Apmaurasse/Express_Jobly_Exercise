@@ -52,7 +52,17 @@ router.post("/", ensureLoggedIn, async function (req, res, next) {
 
 router.get("/", async function (req, res, next) {
   try {
-    const companies = await Company.findAll();
+    // Extract filtering parameters from the query string
+    const { name, minEmployees, maxEmployees } = req.query;
+
+    // Validate minEmployees and maxEmployees
+    if (minEmployees && maxEmployees && parseInt(minEmployees) > parseInt(maxEmployees)) {
+      throw new BadRequestError("minEmployees cannot be greater than maxEmployees");
+    }
+
+    // Call the model method to fetch filtered companies
+    const companies = await Company.findAll({ name, minEmployees, maxEmployees });
+
     return res.json({ companies });
   } catch (err) {
     return next(err);

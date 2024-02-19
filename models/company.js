@@ -49,17 +49,41 @@ class Company {
    * Returns [{ handle, name, description, numEmployees, logoUrl }, ...]
    * */
 
-  static async findAll() {
-    const companiesRes = await db.query(
-          `SELECT handle,
-                  name,
-                  description,
-                  num_employees AS "numEmployees",
-                  logo_url AS "logoUrl"
-           FROM companies
-           ORDER BY name`);
-    return companiesRes.rows;
+static async findAll({ name, minEmployees, maxEmployees }) {
+  let query = `
+    SELECT handle,
+           name,
+           description,
+           num_employees AS "numEmployees",
+           logo_url AS "logoUrl"
+    FROM companies`;
+
+  const values = [];
+
+  // Add WHERE clauses based on filtering criteria
+  const conditions = [];
+  if (name) {
+    conditions.push(`LOWER(name) LIKE LOWER($${values.length + 1})`);
+    values.push(`%${name}%`);
   }
+  if (minEmployees) {
+    conditions.push(`num_employees >= $${values.length + 1}`);
+    values.push(minEmployees);
+  }
+  if (maxEmployees) {
+    conditions.push(`num_employees <= $${values.length + 1}`);
+    values.push(maxEmployees);
+  }
+
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+  // Execute the query
+  const companiesRes = await db.query(query, values);
+  return companiesRes.rows;
+}
+
 
   /** Given a company handle, return data about company.
    *
